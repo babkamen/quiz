@@ -36,7 +36,7 @@ func (p problems) shuffle() {
 
 var (
 	problemsFilePath = flag.String("file", "problems.csv", "filepath to csv with questions")
-	quizTime         = flag.Duration("quiz-time-limit", 3*time.Second, "quiz total time limit")
+	quizTime         = flag.Duration("quiz-time-limit", 30*time.Second, "quiz total time limit")
 	shuffle          = flag.Bool("shuffle", true, "flag that shows where to shuffle questions")
 )
 
@@ -59,7 +59,7 @@ func main() {
 func startQuiz(totalQuestions int) {
 	duration, err := durafmt.ParseString(quizTime.String())
 	logFatal("Something went wrong when parsing duration", err)
-	fmt.Printf("question contains %v questions. You have %v to answer them\nPress enter to start quiz\n",
+	fmt.Printf("Quiz contains %v questions. You have %v to answer them\nPress enter to start quiz\n",
 		totalQuestions, duration)
 	_, err = bufio.NewReader(os.Stdin).ReadBytes('\n')
 	if err != nil {
