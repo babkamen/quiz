@@ -16,17 +16,6 @@ import (
 type quizResult struct {
 	totalQuestions int
 	correctAnswers int
-	acceptAnswers  bool
-}
-
-func (qr *quizResult) stopAcceptingAnswers() {
-	qr.acceptAnswers = false
-}
-
-func (qr *quizResult) correctAnswer() {
-	if qr.acceptAnswers {
-		qr.correctAnswers++
-	}
 }
 
 func (qr *quizResult) printResults() {
@@ -47,7 +36,7 @@ func (p problems) shuffle() {
 
 var (
 	problemsFilePath = flag.String("file", "problems.csv", "filepath to csv with questions")
-	quizTime         = flag.Duration("quiz-time-limit", 30*time.Second, "quiz total time limit")
+	quizTime         = flag.Duration("quiz-time-limit", 3*time.Second, "quiz total time limit")
 	shuffle          = flag.Bool("shuffle", true, "flag that shows where to shuffle questions")
 )
 
@@ -58,18 +47,9 @@ func main() {
 		problems.shuffle()
 	}
 
-	qr := quizResult{totalQuestions: len(problems), acceptAnswers: true}
+	qr := quizResult{totalQuestions: len(problems)}
 
 	startQuiz(qr.totalQuestions)
-
-	timer := time.NewTimer(*quizTime)
-	go func(quizRes *quizResult) {
-		<-timer.C
-		quizRes.stopAcceptingAnswers()
-		quizRes.printResults()
-		fmt.Println("Out of time")
-		os.Exit(0)
-	}(&qr)
 
 	processQuiz(problems, &qr)
 
@@ -113,25 +93,36 @@ func readProblemsFile(filepath string) problems {
 	return result
 }
 
-func processQuiz(problems []problem, quizResult *quizResult) {
+func processQuiz(problems []problem, qr *quizResult) {
+	timer := time.NewTimer(*quizTime)
+	c := make(chan string, 1)
+
 	for i, p := range problems {
 		if strings.Contains(p.question, "?") {
 			fmt.Println(p.question)
 		} else {
-			fmt.Printf("%v. what %v, sir?\n", i+1, p.question)
+			fmt.Printf("%v.  %v=", i+1, p.question)
 		}
-		answer := getInputFromUser()
-		if strings.EqualFold(answer, p.answer) {
-			quizResult.correctAnswer()
+
+		go getInputFromUser(c)
+
+		select {
+		case answer := <-c:
+			if strings.EqualFold(answer, p.answer) {
+				qr.correctAnswers++
+			}
+		case <-timer.C:
+			fmt.Println("Out of time")
+			return
 		}
 	}
 }
 
-func getInputFromUser() string {
+func getInputFromUser(c chan string) {
 	var result string
 	reader := bufio.NewReader(os.Stdin)
 	result, err := reader.ReadString('\n')
 	logFatal("Something went wrong when reading input ", err)
 	result = strings.TrimSpace(result)
-	return result
+	c <- result
 }
