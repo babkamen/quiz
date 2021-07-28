@@ -78,7 +78,7 @@ func readProblemsFile(filepath string) problems {
 	logFatal("Something went wrong when opening the file ", err)
 
 	r := csv.NewReader(file)
-	defer file.Close()
+	defer closeFile(file)
 	records, err := r.ReadAll()
 	logFatal("Something went wrong when reading csv ", err)
 	//validate file
@@ -91,6 +91,14 @@ func readProblemsFile(filepath string) problems {
 	}
 
 	return result
+}
+
+func closeFile(f *os.File) {
+	fmt.Println("closing file")
+	err := f.Close()
+	if err != nil {
+		logFatal("Error when closing file", err)
+	}
 }
 
 func processQuiz(problems []problem, qr *quizResult) {
