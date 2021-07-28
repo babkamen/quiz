@@ -41,6 +41,10 @@ var (
 )
 
 func main() {
+	if contains(os.Args, "--help") {
+		printHelp()
+	}
+	flag.Parse()
 
 	problems := readProblemsFile(*problemsFilePath)
 	if *shuffle {
@@ -54,6 +58,12 @@ func main() {
 	processQuiz(problems, &qr)
 
 	qr.printResults()
+}
+
+func printHelp() {
+	fmt.Fprintf(os.Stderr, "usage: %s [flags] <paths...>\n", os.Args[0])
+	flag.PrintDefaults()
+	os.Exit(0)
 }
 
 func startQuiz(totalQuestions int) {
@@ -120,7 +130,7 @@ func processQuiz(problems []problem, qr *quizResult) {
 				qr.correctAnswers++
 			}
 		case <-timer.C:
-			fmt.Println("Out of time")
+			fmt.Println("\nOut of time")
 			return
 		}
 	}
@@ -133,4 +143,13 @@ func getInputFromUser(c chan string) {
 	logFatal("Something went wrong when reading input ", err)
 	result = strings.TrimSpace(result)
 	c <- result
+}
+
+func contains(str []string, searchterm string) bool {
+	for _, s := range str {
+		if s == searchterm {
+			return true
+		}
+	}
+	return false
 }
